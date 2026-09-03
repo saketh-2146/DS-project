@@ -16,9 +16,18 @@ export default function Booking() {
   
   // Form State
   const [seats, setSeats] = useState(1);
-  const [attendeeName, setAttendeeName] = useState(currentUser?.name || '');
-  const [attendeePhone, setAttendeePhone] = useState(currentUser?.phone || '');
+  const [attendees, setAttendees] = useState([{ name: currentUser?.name || '', phone: currentUser?.phone || '' }]);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    setAttendees(prev => {
+      if (prev.length === seats) return prev;
+      if (prev.length < seats) {
+        return [...prev, ...Array.from({ length: seats - prev.length }, () => ({ name: '', phone: '' }))];
+      }
+      return prev.slice(0, seats);
+    });
+  }, [seats]);
 
   useEffect(() => {
     // Find event
@@ -51,7 +60,7 @@ export default function Booking() {
 
     // Simulate payment processing / network
     setTimeout(() => {
-      const res = bookEvent(event.id, seats, { name: attendeeName, phone: attendeePhone });
+      const res = bookEvent(event.id, seats, attendees);
       
       setProcessing(false);
       
@@ -94,38 +103,6 @@ export default function Booking() {
               
               <div className="card card-body" style={{ marginBottom: 'var(--space-6)' }}>
                 <h3 style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <User size={18} className="text-muted" /> Attendee Details
-                </h3>
-                
-                <div className="form-group" style={{ marginBottom: 'var(--space-4)' }}>
-                  <label className="form-label">Full Name</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    value={attendeeName}
-                    onChange={e => setAttendeeName(e.target.value)}
-                    required
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label className="form-label">Mobile Number</label>
-                  <input 
-                    type="tel" 
-                    className="form-input" 
-                    value={attendeePhone}
-                    onChange={e => setAttendeePhone(e.target.value)}
-                    required
-                  />
-                </div>
-                
-                <div style={{ marginTop: 'var(--space-4)', fontSize: '0.75rem', color: 'var(--color-text-3)' }}>
-                  Tickets will be sent to <strong>{currentUser?.email}</strong>.
-                </div>
-              </div>
-
-              <div className="card card-body">
-                <h3 style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Ticket size={18} className="text-muted" /> Select Seats
                 </h3>
                 
@@ -149,6 +126,50 @@ export default function Booking() {
                   </div>
                 )}
               </div>
+
+              {attendees.map((attendee, idx) => (
+                <div key={idx} className="card card-body" style={{ marginBottom: 'var(--space-6)' }}>
+                  <h3 style={{ marginBottom: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <User size={18} className="text-muted" /> Attendee {idx + 1} Details
+                  </h3>
+                  
+                  <div className="form-group" style={{ marginBottom: 'var(--space-4)' }}>
+                    <label className="form-label">Full Name</label>
+                    <input 
+                      type="text" 
+                      className="form-input" 
+                      value={attendee.name}
+                      onChange={e => {
+                        const newAttendees = [...attendees];
+                        newAttendees[idx].name = e.target.value;
+                        setAttendees(newAttendees);
+                      }}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="form-group">
+                    <label className="form-label">Mobile Number</label>
+                    <input 
+                      type="tel" 
+                      className="form-input" 
+                      value={attendee.phone}
+                      onChange={e => {
+                        const newAttendees = [...attendees];
+                        newAttendees[idx].phone = e.target.value;
+                        setAttendees(newAttendees);
+                      }}
+                      required
+                    />
+                  </div>
+                  
+                  {idx === 0 && (
+                    <div style={{ marginTop: 'var(--space-4)', fontSize: '0.75rem', color: 'var(--color-text-3)' }}>
+                      Tickets will be sent to <strong>{currentUser?.email}</strong>.
+                    </div>
+                  )}
+                </div>
+              ))}
               
             </form>
           </div>

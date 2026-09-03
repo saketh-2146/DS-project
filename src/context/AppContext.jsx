@@ -225,7 +225,7 @@ export function AppProvider({ children }) {
     dispatch({ type: 'SET_BOOKINGS', payload: all });
   }, []);
 
-  const bookEvent = useCallback(async (eventId, seats, userInfo) => {
+  const bookEvent = useCallback(async (eventId, seats, attendees) => {
     if (!state.currentUser) return { success: false, error: 'Please log in to book.' };
 
     const event = eventArray.findById(eventId);
@@ -245,8 +245,9 @@ export function AppProvider({ children }) {
       waitingQueueMap.enqueue(eventId, {
         userId:    state.currentUser.id,
         userEmail: state.currentUser.email,
-        userName:  userInfo?.name || state.currentUser.name,
-        userPhone: userInfo?.phone || state.currentUser.phone,
+        userName:  attendees[0]?.name || state.currentUser.name,
+        userPhone: attendees[0]?.phone || state.currentUser.phone,
+        attendees,
         seats,
         timestamp: new Date().toISOString(),
       });
@@ -277,8 +278,9 @@ export function AppProvider({ children }) {
       eventVenue:   event.venue,
       eventImage:   event.image,
       userEmail:    state.currentUser.email,
-      userName:     userInfo?.name || state.currentUser.name,
-      userPhone:    userInfo?.phone || state.currentUser.phone,
+      userName:     attendees[0]?.name || state.currentUser.name,
+      userPhone:    attendees[0]?.phone || state.currentUser.phone,
+      attendees,
       seats,
       pricePerSeat: event.price,
       totalAmount:  event.price * seats,
@@ -350,6 +352,7 @@ export function AppProvider({ children }) {
         userEmail:    next.userEmail,
         userName:     next.userName,
         userPhone:    next.userPhone,
+        attendees:    next.attendees,
         seats:        next.seats,
         pricePerSeat: event?.price || 0,
         totalAmount:  (event?.price || 0) * next.seats,

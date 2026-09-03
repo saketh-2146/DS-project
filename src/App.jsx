@@ -30,23 +30,7 @@ function AdminRoute({ children }) {
 
 function AppLoadingScreen() {
   return (
-    <div style={{
-      minHeight: '100vh', display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center', gap: '1.5rem',
-      background: 'var(--color-bg)',
-    }}>
-      <div style={{ fontSize: '3rem' }}>🎫</div>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}
-             className="text-gradient">
-          EventBook DS
-        </div>
-        <div style={{ fontSize: '0.8rem', color: 'var(--color-text-3)' }}>
-          {isFirebaseConfigured
-            ? 'Connecting to Firebase Firestore…'
-            : 'Loading application data…'}
-        </div>
-      </div>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg)' }}>
       <div className="spinner" />
     </div>
   );
@@ -62,7 +46,7 @@ export default function App() {
       <Navbar />
       <main style={{ flex: 1 }}>
         <Routes>
-          <Route path="/"                element={<Home />} />
+          <Route path="/"                element={<ProtectedRoute><Home /></ProtectedRoute>} />
           <Route path="/events"          element={<Events />} />
           <Route path="/events/:id"      element={<EventDetails />} />
           <Route path="/book/:id"        element={<ProtectedRoute><Booking /></ProtectedRoute>} />

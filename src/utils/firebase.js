@@ -29,7 +29,7 @@ const firebaseConfig = {
 };
 
 // Always configured — credentials live in .env
-export const isFirebaseConfigured = true;
+export const isFirebaseConfigured = !!firebaseConfig.apiKey;
 
 let app = null;
 let db = null;

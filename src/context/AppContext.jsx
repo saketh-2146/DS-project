@@ -373,26 +373,34 @@ export function AppProvider({ children }) {
       });
     }
 
-    // ── Auto-promote next person from Waiting Queue ────────────────────────
-    let promotedBooking = null;
-    const next = waitingQueueMap.dequeue(booking.eventId);
-    if (next) {
+    // ── Auto-promote next person(s) from Waiting Queue ────────────────────
+    const promotedBookings = [];
+    let currentEvent = eventArray.findById(booking.eventId);
+
+    while (currentEvent && currentEvent.availableSeats > 0) {
+      const next = waitingQueueMap.getQueue(booking.eventId).peek();
+      if (!next) break; // No one waiting
+
+      // Only promote if enough seats are available for this person's request
+      if (currentEvent.availableSeats < next.seats) break;
+
+      // Dequeue and allocate
+      waitingQueueMap.dequeue(booking.eventId);
       const promotedId = generateId('bkg');
       const allocatedSlots = seatQueueMap.allocate(booking.eventId, next.seats, promotedId, next.userEmail);
 
-      const enhancedAttendees = next.attendees.map((attendee, idx) => ({
+      const enhancedAttendees = (next.attendees || []).map((attendee, idx) => ({
         ...attendee,
         seatNumber: allocatedSlots ? allocatedSlots[idx] + 1 : null
       }));
 
-      const ev = eventArray.findById(booking.eventId);
-      if (ev) {
-        updatedEvent = eventArray.updateById(booking.eventId, {
-          availableSeats: ev.availableSeats - next.seats,
-        });
-      }
+      updatedEvent = eventArray.updateById(booking.eventId, {
+        availableSeats: currentEvent.availableSeats - next.seats,
+        bookingsCount: (currentEvent.bookingsCount || 0) + 1,
+      });
+      currentEvent = eventArray.findById(booking.eventId);
 
-      promotedBooking = {
+      const promotedBooking = {
         id:           promotedId,
         eventId:      booking.eventId,
         eventName:    booking.eventName,
@@ -412,14 +420,15 @@ export function AppProvider({ children }) {
         promotedFromWaitlist: true,
       };
       bookingLinkedList.prepend(promotedBooking);
-      showToast('✅ Seat auto-assigned to next person on waiting list.', 'info');
+      promotedBookings.push(promotedBooking);
+      showToast(`✅ Seat automatically assigned to ${next.userName} from waiting list!`, 'success', 5000);
     }
 
     // Persist all changes concurrently
     await Promise.all([
       updatedEvent ? storage.saveEvent(updatedEvent) : Promise.resolve(),
       storage.saveBooking({ ...booking, status: 'cancelled' }),
-      promotedBooking ? storage.saveBooking(promotedBooking) : Promise.resolve(),
+      ...promotedBookings.map(pb => storage.saveBooking(pb)),
       storage.saveWaitingQueues(waitingQueueMap.serialize()),
       storage.saveSeatQueues(seatQueueMap.serialize()),
     ]);

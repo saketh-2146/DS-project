@@ -66,6 +66,16 @@ export class SeatCircularQueue {
     return freed;
   }
 
+  // Release specific seat slot indices (for partial cancellation) — O(k)
+  releaseBySlots(slotIndices) {
+    slotIndices.forEach(idx => {
+      if (idx >= 0 && idx < this.capacity && this.slots[idx] !== null) {
+        this.slots[idx] = null;
+        this.bookedCount--;
+      }
+    });
+  }
+
   // Get number of available seats — O(1)
   get availableSeats() {
     return this.capacity - this.bookedCount;
@@ -142,6 +152,12 @@ export class SeatCircularQueueMap {
   release(eventId, bookingId) {
     const q = this.map.get(eventId);
     return q ? q.release(bookingId) : 0;
+  }
+
+  // Release specific seats by slot index (partial cancellation)
+  releaseBySlots(eventId, slotIndices) {
+    const q = this.map.get(eventId);
+    if (q) q.releaseBySlots(slotIndices);
   }
 
   // Get available seats for an event

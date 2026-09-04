@@ -442,6 +442,94 @@ export function AppProvider({ children }) {
     return { success: true };
   }, [showToast]);
 
+  // ── Partial Seat Cancellation ───────────────────────────────────────────────
+  const cancelSeats = useCallback(async (bookingId, seatNumbersToCancel) => {
+    const booking = bookingLinkedList.findById(bookingId);
+    if (!booking) return { success: false, error: 'Booking not found.' };
+    if (booking.status === 'cancelled') return { success: false, error: 'Already cancelled.' };
+
+    const cancelCount = seatNumbersToCancel.length;
+    // seatNumber is 1-based; slot index is 0-based
+    const slotIndicesToFree = seatNumbersToCancel.map(sn => sn - 1);
+
+    // Free the specific slots
+    seatQueueMap.releaseBySlots(booking.eventId, slotIndicesToFree);
+
+    // Remove those attendees from the booking
+    const remainingAttendees = (booking.attendees || []).filter(
+      a => !seatNumbersToCancel.includes(a.seatNumber)
+    );
+    const remainingSeats = booking.seats - cancelCount;
+
+    // Update booking in linked list
+    let updatedBooking;
+    if (remainingSeats <= 0) {
+      // All seats cancelled — mark whole booking cancelled
+      bookingLinkedList.updateStatus(bookingId, 'cancelled');
+      updatedBooking = { ...booking, status: 'cancelled', attendees: [], seats: 0 };
+    } else {
+      bookingLinkedList.updateById(bookingId, { attendees: remainingAttendees, seats: remainingSeats });
+      updatedBooking = { ...booking, attendees: remainingAttendees, seats: remainingSeats };
+    }
+
+    // Update event available seats
+    const event = eventArray.findById(booking.eventId);
+    let updatedEvent = null;
+    if (event) {
+      updatedEvent = eventArray.updateById(booking.eventId, {
+        availableSeats: event.availableSeats + cancelCount,
+        bookingsCount: remainingSeats <= 0 ? Math.max(0, (event.bookingsCount || 1) - 1) : event.bookingsCount,
+      });
+    }
+
+    // Auto-promote from waiting list
+    const promotedBookings = [];
+    let currentEvent = eventArray.findById(booking.eventId);
+    while (currentEvent && currentEvent.availableSeats > 0) {
+      const next = waitingQueueMap.getQueue(booking.eventId).peek();
+      if (!next || currentEvent.availableSeats < next.seats) break;
+      waitingQueueMap.dequeue(booking.eventId);
+      const promotedId = generateId('bkg');
+      const allocatedSlots = seatQueueMap.allocate(booking.eventId, next.seats, promotedId, next.userEmail);
+      const enhancedAttendees = (next.attendees || []).map((att, idx) => ({
+        ...att, seatNumber: allocatedSlots ? allocatedSlots[idx] + 1 : null
+      }));
+      updatedEvent = eventArray.updateById(booking.eventId, {
+        availableSeats: currentEvent.availableSeats - next.seats,
+        bookingsCount: (currentEvent.bookingsCount || 0) + 1,
+      });
+      currentEvent = eventArray.findById(booking.eventId);
+      const pb = {
+        id: promotedId, eventId: booking.eventId, eventName: booking.eventName,
+        eventDate: booking.eventDate, eventTime: booking.eventTime,
+        eventVenue: booking.eventVenue, eventImage: booking.eventImage,
+        userEmail: next.userEmail, userName: next.userName, userPhone: next.userPhone,
+        attendees: enhancedAttendees, seats: next.seats,
+        pricePerSeat: event?.price || 0, totalAmount: (event?.price || 0) * next.seats,
+        status: 'confirmed', bookedAt: new Date().toISOString(), promotedFromWaitlist: true,
+      };
+      bookingLinkedList.prepend(pb);
+      promotedBookings.push(pb);
+      showToast(`✅ Seat assigned to ${next.userName} from waiting list!`, 'success', 5000);
+    }
+
+    await Promise.all([
+      storage.saveBooking(updatedBooking),
+      updatedEvent ? storage.saveEvent(updatedEvent) : Promise.resolve(),
+      ...promotedBookings.map(pb => storage.saveBooking(pb)),
+      storage.saveWaitingQueues(waitingQueueMap.serialize()),
+      storage.saveSeatQueues(seatQueueMap.serialize()),
+    ]);
+
+    eventBST.buildFromArray(eventArray.getAll());
+    priorityQueue.buildFromEvents(eventArray.getAll());
+    dispatch({ type: 'SET_EVENTS',   payload: eventArray.getAll() });
+    dispatch({ type: 'SET_BOOKINGS', payload: bookingLinkedList.toArray() });
+
+    showToast(`Seat${cancelCount > 1 ? 's' : ''} cancelled successfully.`, 'warning');
+    return { success: true };
+  }, [showToast]);
+
   // ── Context Value ──────────────────────────────────────────────────────────
   const value = {
     events:       state.events,
@@ -455,7 +543,7 @@ export function AppProvider({ children }) {
     // Events
     addEvent, updateEvent, deleteEvent,
     // Bookings
-    bookEvent, cancelBooking,
+    bookEvent, cancelBooking, cancelSeats,
     // Toast
     showToast,
     // DS references (for visualization / admin panel)

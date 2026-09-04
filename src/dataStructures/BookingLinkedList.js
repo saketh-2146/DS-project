@@ -70,6 +70,19 @@ export class BookingLinkedList {
     return false;
   }
 
+  // Update arbitrary fields on a booking by id — O(n)
+  updateById(bookingId, fields) {
+    let current = this.head;
+    while (current) {
+      if (current.booking.id === bookingId) {
+        Object.assign(current.booking, fields);
+        return current.booking;
+      }
+      current = current.next;
+    }
+    return null;
+  }
+
   // Remove booking by id — O(n)
   remove(bookingId) {
     if (!this.head) return false;

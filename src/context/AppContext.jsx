@@ -79,7 +79,27 @@ export function AppProvider({ children }) {
 
       } else {
         // ── Subsequent runs: load persisted data ───────────────────────────
-        const storedEvents   = await storage.loadEvents()   || SAMPLE_EVENTS;
+        let storedEvents   = await storage.loadEvents()   || SAMPLE_EVENTS;
+        
+        // Forcefully cap any existing events in storage to 100 maximum seats
+        let eventsModified = false;
+        storedEvents = storedEvents.map(ev => {
+          if (ev.totalSeats > 100) {
+            eventsModified = true;
+            const difference = ev.totalSeats - 100;
+            return {
+              ...ev,
+              totalSeats: 100,
+              availableSeats: Math.max(0, ev.availableSeats - difference)
+            };
+          }
+          return ev;
+        });
+        
+        if (eventsModified) {
+          await storage.saveEvents(storedEvents);
+        }
+
         const storedUsers    = await storage.loadUsers()    || [];
         const storedBookings = await storage.loadBookings() || [];
         const storedWaiting  = await storage.loadWaitingQueues() || {};

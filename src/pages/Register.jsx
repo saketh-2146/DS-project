@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext';
 import { User, Mail, Lock, Phone, ArrowRight } from 'lucide-react';
 
 export default function Register() {
-  const { register } = useApp();
+  const { register, login } = useApp();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ name: '', email: '', password: '', phone: '' });
   const [error, setError] = useState('');
@@ -21,15 +21,15 @@ export default function Register() {
       return;
     }
 
-    setTimeout(() => {
-      const res = register(formData.name, formData.email, formData.password, formData.phone);
-      if (res.success) {
-        navigate('/login');
-      } else {
-        setError(res.error);
-        setLoading(false);
-      }
-    }, 600);
+    const res = await register(formData.name, formData.email, formData.password, formData.phone);
+    if (res.success) {
+      // Auto-login after signup and redirect to home
+      login(formData.email, formData.password);
+      navigate('/');
+    } else {
+      setError(res.error);
+      setLoading(false);
+    }
   };
 
   return (

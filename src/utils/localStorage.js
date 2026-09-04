@@ -180,21 +180,38 @@ export const storage = {
   },
 
   saveUser: async (user) => {
-    // User doc ID = email (safe chars replaced)
-    const docId = user.email.replace(/\./g, '_').replace(/@/g, '-at-');
+    // User doc ID = email with special chars replaced for Firestore compatibility
+    const docId = user.email.replace(/\./g, '_').replace(/@/g, '-at-').replace(/[^a-zA-Z0-9_-]/g, '_');
+    // Save to localStorage
     const all = lsGet(LS.USERS, []);
     const idx = all.findIndex(u => u.email === user.email);
     if (idx !== -1) all[idx] = user; else all.push(user);
     lsSet(LS.USERS, all);
-    if (isFirebaseConfigured) {
-      await writeDoc(COLLECTIONS.USERS, docId, user);
+    // Save to Firestore
+    if (isFirebaseConfigured && db) {
+      try {
+        const { doc, setDoc } = await import('firebase/firestore');
+        await setDoc(doc(db, COLLECTIONS.USERS, docId), user, { merge: true });
+        console.log('✅ User saved to Firestore:', docId);
+      } catch (err) {
+        console.error('❌ Failed to save user to Firestore:', err);
+      }
     }
   },
 
   saveUsers: async (usersArray) => {
     lsSet(LS.USERS, usersArray);
-    if (isFirebaseConfigured) {
-      await batchWrite(COLLECTIONS.USERS, usersArray, 'email');
+    if (isFirebaseConfigured && db) {
+      // Save each user individually with safe doc ID
+      await Promise.all(usersArray.map(async (user) => {
+        const docId = user.email.replace(/\./g, '_').replace(/@/g, '-at-').replace(/[^a-zA-Z0-9_-]/g, '_');
+        try {
+          const { doc, setDoc } = await import('firebase/firestore');
+          await setDoc(doc(db, COLLECTIONS.USERS, docId), user, { merge: true });
+        } catch (err) {
+          console.error('❌ Failed to save user to Firestore:', user.email, err);
+        }
+      }));
     }
   },
 

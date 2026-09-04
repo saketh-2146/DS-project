@@ -174,10 +174,12 @@ export function AppProvider({ children }) {
   }, []);
 
   const addEvent = useCallback(async (eventData) => {
+    const cappedSeats = Math.min(100, Number(eventData.totalSeats));
     const ev = {
       ...eventData,
       id:             generateId('evt'),
-      availableSeats: Number(eventData.totalSeats),
+      totalSeats:     cappedSeats,
+      availableSeats: cappedSeats,
       bookingsCount:  0,
       createdAt:      new Date().toISOString(),
     };
@@ -242,6 +244,12 @@ export function AppProvider({ children }) {
       if (waitingQueueMap.isWaiting(eventId, state.currentUser.email)) {
         return { success: false, error: 'You are already on the waiting list.' };
       }
+
+      // Check if adding these seats exceeds the 50 seat waitlist capacity
+      if (waitingQueueMap.getTotalSeats(eventId) + seats > 50) {
+        return { success: false, error: 'The waiting list is full (maximum 50 waitlisted seats allowed).' };
+      }
+
       waitingQueueMap.enqueue(eventId, {
         userId:    state.currentUser.id,
         userEmail: state.currentUser.email,
@@ -258,7 +266,13 @@ export function AppProvider({ children }) {
 
     // ── Allocate seats via Circular Queue ─────────────────────────────────
     const bookingId = generateId('bkg');
-    seatQueueMap.allocate(eventId, seats, bookingId, state.currentUser.email);
+    const allocatedSlots = seatQueueMap.allocate(eventId, seats, bookingId, state.currentUser.email);
+    
+    // Map allocated seats to attendees
+    const enhancedAttendees = attendees.map((attendee, idx) => ({
+      ...attendee,
+      seatNumber: allocatedSlots ? allocatedSlots[idx] + 1 : null
+    }));
 
     // Update EventArray in-memory
     const newAvailable    = event.availableSeats - seats;
@@ -278,9 +292,9 @@ export function AppProvider({ children }) {
       eventVenue:   event.venue,
       eventImage:   event.image,
       userEmail:    state.currentUser.email,
-      userName:     attendees[0]?.name || state.currentUser.name,
-      userPhone:    attendees[0]?.phone || state.currentUser.phone,
-      attendees,
+      userName:     enhancedAttendees[0]?.name || state.currentUser.name,
+      userPhone:    enhancedAttendees[0]?.phone || state.currentUser.phone,
+      attendees:    enhancedAttendees,
       seats,
       pricePerSeat: event.price,
       totalAmount:  event.price * seats,
@@ -332,7 +346,12 @@ export function AppProvider({ children }) {
     const next = waitingQueueMap.dequeue(booking.eventId);
     if (next) {
       const promotedId = generateId('bkg');
-      seatQueueMap.allocate(booking.eventId, next.seats, promotedId, next.userEmail);
+      const allocatedSlots = seatQueueMap.allocate(booking.eventId, next.seats, promotedId, next.userEmail);
+
+      const enhancedAttendees = next.attendees.map((attendee, idx) => ({
+        ...attendee,
+        seatNumber: allocatedSlots ? allocatedSlots[idx] + 1 : null
+      }));
 
       const ev = eventArray.findById(booking.eventId);
       if (ev) {
@@ -352,7 +371,7 @@ export function AppProvider({ children }) {
         userEmail:    next.userEmail,
         userName:     next.userName,
         userPhone:    next.userPhone,
-        attendees:    next.attendees,
+        attendees:    enhancedAttendees,
         seats:        next.seats,
         pricePerSeat: event?.price || 0,
         totalAmount:  (event?.price || 0) * next.seats,

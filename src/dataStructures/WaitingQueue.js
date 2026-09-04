@@ -70,6 +70,11 @@ export class WaitingQueue {
     return this.items.length;
   }
 
+  // Get total number of seats requested in queue — O(n)
+  getTotalSeats() {
+    return this.items.reduce((sum, item) => sum + (item.seats || 0), 0);
+  }
+
   // Get all entries (for display purposes)
   getAll() {
     return [...this.items];
@@ -123,6 +128,11 @@ export class WaitingQueueMap {
   // Check if user is waiting for a specific event
   isWaiting(eventId, userEmail) {
     return this.getQueue(eventId).contains(userEmail);
+  }
+
+  // Get total number of seats currently waitlisted for a specific event
+  getTotalSeats(eventId) {
+    return this.getQueue(eventId).getTotalSeats();
   }
 
   // Serialize all queues for localStorage

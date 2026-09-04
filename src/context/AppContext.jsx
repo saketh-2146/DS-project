@@ -101,6 +101,18 @@ export function AppProvider({ children }) {
         }
 
         const storedUsers    = await storage.loadUsers()    || [];
+        
+        // Force register new admin if not present
+        if (!storedUsers.find(u => u.email === ADMIN_CREDENTIALS.email)) {
+          const newAdmin = {
+            ...ADMIN_CREDENTIALS,
+            password: hashPassword(ADMIN_CREDENTIALS.password),
+            createdAt: new Date().toISOString(),
+          };
+          storedUsers.push(newAdmin);
+          await storage.saveUser(newAdmin);
+        }
+
         const storedBookings = await storage.loadBookings() || [];
         const storedWaiting  = await storage.loadWaitingQueues() || {};
         const storedSeats    = await storage.loadSeatQueues()    || {};

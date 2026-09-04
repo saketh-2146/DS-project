@@ -184,8 +184,8 @@ export const CATEGORIES = [
 ];
 
 export const ADMIN_CREDENTIALS = {
-  email: 'admin@eventbook.com',
-  password: 'Admin@123',
+  email: 'admin2026@gmai.com',
+  password: 'admin@123',
   name: 'System Administrator',
   role: 'admin',
 };

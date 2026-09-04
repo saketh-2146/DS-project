@@ -27,20 +27,29 @@ export class SeatCircularQueue {
     this.rear = 0;         // Points to last booked seat
   }
 
-  // Allocate N seats for a booking — O(k) where k = seats requested
+  // Allocate N seats for a booking — randomly picks from available seats
   allocate(seats, bookingId, userEmail) {
     if (this.availableSeats < seats) return null;
-    const allocatedSlots = [];
-    let count = 0;
-    for (let i = 0; i < this.capacity && count < seats; i++) {
-      const idx = (this.front + i) % this.capacity;
-      if (this.slots[idx] === null) {
-        this.slots[idx] = { bookingId, userEmail };
-        allocatedSlots.push(idx);
-        count++;
-        this.bookedCount++;
-      }
+
+    // Collect all available slot indices
+    const availableIndices = [];
+    for (let i = 0; i < this.capacity; i++) {
+      if (this.slots[i] === null) availableIndices.push(i);
     }
+
+    // Shuffle available indices using Fisher-Yates to get random seats
+    for (let i = availableIndices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [availableIndices[i], availableIndices[j]] = [availableIndices[j], availableIndices[i]];
+    }
+
+    // Pick the first N random available seats
+    const allocatedSlots = availableIndices.slice(0, seats);
+    allocatedSlots.forEach(idx => {
+      this.slots[idx] = { bookingId, userEmail };
+      this.bookedCount++;
+    });
+
     return allocatedSlots;
   }
 

@@ -53,28 +53,26 @@ export default function Booking() {
   const maxSeats = isSoldOut ? 4 : Math.min(event.availableSeats, 10); // allow up to 4 on waiting list
   const totalAmount = event.price * seats;
 
-  const handleBook = (e) => {
+  const [confirmedBooking, setConfirmedBooking] = useState(null); // holds booking result for confirmation modal
+
+  const handleBook = async (e) => {
     e.preventDefault();
     setError('');
     setProcessing(true);
 
-    // Simulate payment processing / network
-    setTimeout(() => {
-      const res = bookEvent(event.id, seats, attendees);
-      
-      setProcessing(false);
-      
-      if (res.success) {
-        if (res.waitlisted) {
-          navigate('/waiting-list');
-        } else {
-          // Success! Show confirmation animation or go to bookings
-          navigate('/my-bookings');
-        }
+    const res = await bookEvent(event.id, seats, attendees);
+    setProcessing(false);
+
+    if (res.success) {
+      if (res.waitlisted) {
+        navigate('/waiting-list');
       } else {
-        setError(res.error);
+        // Show seat confirmation modal before redirecting
+        setConfirmedBooking(res.booking);
       }
-    }, 1500);
+    } else {
+      setError(res.error);
+    }
   };
 
   return (
@@ -231,6 +229,56 @@ export default function Booking() {
           
         </div>
       </div>
+    </div>
+
+      {/* ── Booking Confirmation Modal ── */}
+      {confirmedBooking && (
+        <div className="modal-overlay" style={{ zIndex: 1000 }}>
+          <div className="modal" style={{ maxWidth: '420px', textAlign: 'center', padding: 'var(--space-8)' }}>
+            <div style={{ fontSize: '4rem', marginBottom: 'var(--space-4)' }}>🎉</div>
+            <h2 style={{ fontSize: 'var(--text-2xl)', marginBottom: '0.5rem' }}>Booking Confirmed!</h2>
+            <p style={{ color: 'var(--color-text-2)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-6)' }}>
+              Your ticket for <strong>{confirmedBooking.eventName}</strong> is confirmed.
+            </p>
+
+            <div style={{
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '1.25rem',
+              marginBottom: 'var(--space-6)',
+            }}>
+              <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-text-3)', marginBottom: '0.5rem' }}>
+                Your Assigned Seat{confirmedBooking.attendees?.length > 1 ? 's' : ''}
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                {confirmedBooking.attendees?.map((a, idx) => (
+                  <div key={idx} style={{
+                    width: '52px', height: '52px',
+                    borderRadius: 'var(--radius)',
+                    background: 'linear-gradient(135deg, var(--color-primary), var(--color-accent))',
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center',
+                    color: '#fff', fontWeight: 800,
+                    fontSize: a.seatNumber >= 100 ? '0.85rem' : '1.1rem',
+                  }}>
+                    {a.seatNumber || '—'}
+                    <span style={{ fontSize: '0.45rem', fontWeight: 400, opacity: 0.8, letterSpacing: '0.05em' }}>SEAT</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button
+              className="btn btn-primary w-full"
+              style={{ justifyContent: 'center' }}
+              onClick={() => navigate('/my-bookings')}
+            >
+              Go to My Bookings
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

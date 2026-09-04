@@ -86,33 +86,21 @@ export default function MyBookings() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
               {displayList.map(booking => (
-                <div key={booking.id} className="booking-card">
+                <div key={booking.id} className="booking-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
                   
-                  <div className="booking-card-img" onClick={() => navigate(`/events/${booking.eventId}`)} style={{ cursor: 'pointer' }}>
-                    <img src={booking.eventImage} alt="" onError={e => { e.target.src = `https://picsum.photos/seed/${booking.eventId}/100/100`; }} />
-                  </div>
-                  
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                       <BookingBadge status={booking.status} />
-                      {booking.promotedFromWaitlist && (
-                        <span className="badge" style={{ background: 'rgba(139,92,246,0.15)', color: 'var(--color-accent-l)', border: '1px solid rgba(139,92,246,0.3)' }}>
-                          Promoted from waitlist
-                        </span>
-                      )}
-                      <span style={{ fontSize: '0.65rem', color: 'var(--color-text-3)', marginLeft: 'auto' }}>
-                        ID: {booking.id}
-                      </span>
                     </div>
                     
-                    <h3 style={{ fontSize: 'var(--text-base)', marginBottom: '0.5rem', cursor: 'pointer' }} onClick={() => navigate(`/events/${booking.eventId}`)}>
+                    <h3 style={{ fontSize: 'var(--text-lg)', marginBottom: '0.25rem' }}>
                       {booking.eventName}
                     </h3>
                     
-                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', fontSize: 'var(--text-xs)', color: 'var(--color-text-2)' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Calendar size={12} /> {formatDate(booking.eventDate)}</span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Clock size={12} /> {booking.eventTime}</span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Ticket size={12} /> {booking.seats} Tickets ({formatCurrency(booking.totalAmount)})</span>
+                    <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-2)' }}>
+                      <strong>Seat Number(s):</strong> {booking.attendees && booking.attendees.length > 0 
+                        ? (booking.attendees.map(a => a.seatNumber).filter(Boolean).join(', ') || 'Waitlisted')
+                        : 'Waitlisted'}
                     </div>
                   </div>
 
@@ -122,13 +110,9 @@ export default function MyBookings() {
                         className="btn btn-outline btn-sm" 
                         onClick={() => handleCancel(booking.id)}
                         disabled={cancelling === booking.id}
+                        style={{ color: 'var(--color-danger)', borderColor: 'rgba(239,68,68,0.3)' }}
                       >
                         {cancelling === booking.id ? <span className="spinner spinner-sm" /> : <><XCircle size={14} /> Cancel</>}
-                      </button>
-                    )}
-                    {activeTab !== 'upcoming' && (
-                      <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/events/${booking.eventId}`)}>
-                        View Event
                       </button>
                     )}
                   </div>

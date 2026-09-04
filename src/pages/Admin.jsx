@@ -19,13 +19,13 @@ export default function Admin() {
   
   const [formData, setFormData] = useState({
     name: '', category: 'Technology', date: '', time: '', venue: '',
-    description: '', price: 0, totalSeats: 100, image: '', isFeatured: false
+    description: '', price: 0, totalSeats: 15, image: '', isFeatured: false
   });
 
   const resetForm = () => {
     setFormData({
       name: '', category: 'Technology', date: '', time: '', venue: '',
-      description: '', price: 0, totalSeats: 100, image: '', isFeatured: false
+      description: '', price: 0, totalSeats: 15, image: '', isFeatured: false
     });
     setEditingEvent(null);
   };
@@ -350,7 +350,7 @@ export default function Admin() {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Total Seats</label>
-                  <input type="number" min="1" max="100" className="form-input" required value={formData.totalSeats} onChange={e => setFormData({...formData, totalSeats: Math.min(100, Number(e.target.value))})} disabled={!!editingEvent} />
+                  <input type="number" min="1" max="15" className="form-input" required value={formData.totalSeats} onChange={e => setFormData({...formData, totalSeats: Math.min(15, Number(e.target.value))})} disabled={!!editingEvent} />
                   {editingEvent && <span style={{ fontSize: '0.65rem', color: 'var(--color-warning)' }}>Cannot change capacity after creation.</span>}
                 </div>
               </div>

@@ -81,15 +81,15 @@ export function AppProvider({ children }) {
         // ── Subsequent runs: load persisted data ───────────────────────────
         let storedEvents   = await storage.loadEvents()   || SAMPLE_EVENTS;
         
-        // Forcefully cap any existing events in storage to 100 maximum seats
+        // Forcefully cap any existing events in storage to 15 maximum seats
         let eventsModified = false;
         storedEvents = storedEvents.map(ev => {
-          if (ev.totalSeats > 100) {
+          if (ev.totalSeats > 15) {
             eventsModified = true;
-            const difference = ev.totalSeats - 100;
+            const difference = ev.totalSeats - 15;
             return {
               ...ev,
-              totalSeats: 100,
+              totalSeats: 15,
               availableSeats: Math.max(0, ev.availableSeats - difference)
             };
           }
@@ -206,7 +206,7 @@ export function AppProvider({ children }) {
   }, []);
 
   const addEvent = useCallback(async (eventData) => {
-    const cappedSeats = Math.min(100, Number(eventData.totalSeats));
+    const cappedSeats = Math.min(15, Number(eventData.totalSeats));
     const ev = {
       ...eventData,
       id:             generateId('evt'),

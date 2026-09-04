@@ -215,8 +215,9 @@ export default function Admin() {
                       <tr>
                         <th>ID</th>
                         <th>Date / Time</th>
-                        <th>User Email</th>
-                        <th>Event</th>
+                        <th>Customer Details</th>
+                        <th>Event Name</th>
+                        <th>Ticket Details</th>
                         <th>Status</th>
                       </tr>
                     </thead>
@@ -225,8 +226,19 @@ export default function Admin() {
                         <tr key={b.id}>
                           <td className="font-mono" style={{ fontSize: '0.7rem' }}>{b.id}</td>
                           <td style={{ fontSize: '0.8rem' }}>{new Date(b.bookedAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}</td>
-                          <td style={{ fontSize: '0.8rem' }}>{b.userEmail}</td>
-                          <td style={{ fontSize: '0.8rem' }}>{b.eventName}</td>
+                          <td style={{ fontSize: '0.8rem' }}>
+                            <div style={{ fontWeight: '600' }}>{b.userName || 'N/A'}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--color-text-3)' }}>{b.userEmail}</div>
+                          </td>
+                          <td style={{ fontSize: '0.8rem', fontWeight: '500' }}>{b.eventName}</td>
+                          <td style={{ fontSize: '0.8rem' }}>
+                            <div style={{ marginBottom: '0.2rem' }}><strong>{b.seats}</strong> Ticket(s)</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--color-text-3)' }}>
+                              Seats: {b.attendees && b.attendees.length > 0 
+                                ? (b.attendees.map(a => a.seatNumber).filter(Boolean).join(', ') || 'Waitlisted') 
+                                : 'Waitlisted'}
+                            </div>
+                          </td>
                           <td><BookingBadge status={b.status} /></td>
                         </tr>
                       ))}
